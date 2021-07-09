@@ -1,0 +1,534 @@
+---
+title: "Nutrition Hacks: Models for Fast Food Nutritional Data Analysis"
+author: "Co Sou"
+output: pdf_document
+---
+INTRODUCTION:
+\newline
+    This paper is an anlysis of nutrition facts collected by the MenuStat project, a database compiled by the NYC Department of Health and Mental Hygiene. It offers multi-year records of items sold by well-known national restaurant chains and their nutrition facts. The goals here are 1) to create models that can offer predictive insights in the nutritional breakdown of certain profiles and 2) to examine the changes in how the nutrition facts might change for an item throughout the years. The latter is achieved through a selected case study involving items sold by Burger King and its longitudinal effects. It is the hopes that these offered models can educate the public on the importance of carefully following diet guidlines recommended by the FDA and showcase how statistical analysis can generalize ideas on what we should eat through a scientific inquiry.
+  
+DATA: \newline 
+  The data offered by MenuStat contains records of items sold by national fast food chains and their breakdown of basic nutritional components. Variables recorded include Serving Size, Calories, Fat, Soidum, Carbs content and etc. What's different from this project to other databases of similar information is 1) its focus on fast food restuarants and 2) careful records of items throughout consecutive years. Hence, this database presumes a longitudinal design. Here, we analyze the contents of items for a 6 year period from 2012 to 2017 consisting of about 163,000 observations. Variables used in each model to follow will be displayed to ensure the reader know the exact variables used in its construction. For the longitudinal part of the paper, only items from Burger King will be used and the exact item names will be revealed as well.
+  
+ANALYSIS: \newline
+PART I: LOGISTIC REGRESSION
+\newline 
+  The simplest method for prediction to begin the analysis is that of logistic regression. The question asked here is whether the nutrition facts can determine whether an item is classified as a Kids Meal or not. Intuition tells us that Kids meals are smaller in size and would be designed for lesser consumption than that of regular items. A logistic regression model is employed to answer this question. Models of this kind requires complete information, and therefore all observations with missing variable values are removed. Additionally, the model is sensitive to extreme values that can end up obscuring the coefficients output and a choice of limiting the data to reasonable constraints is made. This gives us a usable dataset of about 76,000 observations.
+    No transformation is done on the variables as we are not bound to normality assumption for logistic regression. Model selection is also performed and the result shows that the saturated model is preffered since it has a lower AIC than the models with reductions. Finally, a confusion matrix is computed to let us know how well the model performed. 
+
+```{r, echo=FALSE, include=FALSE, message=FALSE}
+# dataset for each year; all with same number of var
+menu2017 <- read.csv("/Users/Sou/Desktop/GLM Final/Menu2017.csv", stringsAsFactors = FALSE)
+menu2016 <- read.csv("/Users/Sou/Desktop/GLM Final/Menu2016.csv", stringsAsFactors = FALSE)
+menu2015 <- read.csv("/Users/Sou/Desktop/GLM Final/Menu2015.csv", stringsAsFactors = FALSE)
+menu2014 <- read.csv("/Users/Sou/Desktop/GLM Final/Menu2014.csv", stringsAsFactors = FALSE)
+menu2013 <- read.csv("/Users/Sou/Desktop/GLM Final/Menu2013.csv", stringsAsFactors = FALSE)
+menu2012 <- read.csv("/Users/Sou/Desktop/GLM Final/Menu2012.csv", stringsAsFactors = FALSE)
+
+library(dplyr)
+#clean 2017
+menu2017$Food_Category <- as.factor(menu2017$Food_Category)
+menu2017$Kids_Meal_2017<- as.factor(menu2017$Kids_Meal_2017)
+menu2017$Kids_Meal_2017 <- ifelse(menu2017$Kids_Meal_2017=="0", "No", "Yes")
+menu2017$Limited_Time_Offer_2017 <- as.factor(menu2017$Limited_Time_Offer_2017)
+menu2017$Limited_Time_Offer_2017 <- ifelse(menu2017$Limited_Time_Offer_2017=="0", "No", "Yes")
+menu2017$Regional_2017 <- as.factor(menu2017$Regional_2017)
+menu2017$Regional_2017 <- ifelse(menu2017$Regional_2017=="0", "No", "Yes")
+menu2017$Shareable_2017 <- as.factor(menu2017$Shareable_2017)
+menu2017$Shareable_2017 <- ifelse(menu2017$Shareable_2017=="0", "No", "Yes")
+
+menu2017_subset <- subset(x=menu2017, select = c(Restaurant,Item_Name_2017, Food_Category, Serving_Size_2017,
+                         Calories_2017, Total_Fat_2017, Saturated_Fat_2017,
+                         Trans_Fat_2017, Cholesterol_2017, Sodium_2017,
+                         Potassium_2017, Carbohydrates_2017, Dietary_Fiber_2017,
+                         Sugar_2017, Protein_2017, Kids_Meal_2017, 
+                         Limited_Time_Offer_2017, Regional_2017, Shareable_2017
+                         ))
+menu2017_subset$Kids_Meal_2017 <-as.factor(menu2017_subset$Kids_Meal_2017)
+menu2017_subset$Limited_Time_Offer_2017 <-as.factor(menu2017_subset$Limited_Time_Offer_2017)
+menu2017_subset$Regional_2017 <-as.factor(menu2017_subset$Regional_2017)
+menu2017_subset$Shareable_2017 <- as.factor(menu2017_subset$Shareable_2017)
+#remove observations with missing variables
+menu2017_subset.na<- na.omit(menu2017_subset) #312 full obs.
+#change column names
+colnames(menu2017_subset)[4:19] <- c("Serving_Size", "Calories", "Total_Fat", "Saturated_Fat",
+                                    "Trans_Fat", "Cholesterol", "Sodium", "Potassium",  "Carbohydrates",
+                                    "Dietary_Fiber", "Sugar", "Protein", "Kids_Meal","Limited_Time_Offer",
+                                    "Regional", "Shareable")
+colnames(menu2017_subset)[2] <- "Item_Name"
+
+#clean 2016
+menu2016$Food_Category <- as.factor(menu2016$Food_Category)
+menu2016$Kids_Meal_2016<- as.factor(menu2016$Kids_Meal_2016)
+menu2016$Kids_Meal_2016 <- ifelse(menu2016$Kids_Meal_2016=="0", "No", "Yes")
+menu2016$Limited_Time_Offer_2016 <- as.factor(menu2016$Limited_Time_Offer_2016)
+menu2016$Limited_Time_Offer_2016 <- ifelse(menu2016$Limited_Time_Offer_2016=="0", "No", "Yes")
+menu2016$Regional_2016 <- as.factor(menu2016$Regional_2016)
+menu2016$Regional_2016 <- ifelse(menu2016$Regional_2016=="0", "No", "Yes")
+menu2016$Shareable_2016 <- as.factor(menu2016$Shareable_2016)
+menu2016$Shareable_2016 <- ifelse(menu2016$Shareable_2016=="0", "No", "Yes")
+menu2016_subset <- subset(x=menu2016, select = c(Restaurant, Item_Name_2016, Food_Category, Serving_Size_2016,
+                                                 Calories_2016, Total_Fat_2016, Saturated_Fat_2016,
+                                                 Trans_Fat_2016, Cholesterol_2016, Sodium_2016,
+                                                 Potassium_2016, Carbohydrates_2016, Dietary_Fiber_2016,
+                                                 Sugar_2016, Protein_2016, Kids_Meal_2016, 
+                                                 Limited_Time_Offer_2016, Regional_2016, Shareable_2016
+))
+menu2016_subset$Kids_Meal_2016 <-as.factor(menu2016_subset$Kids_Meal_2016)
+menu2016_subset$Limited_Time_Offer_2016 <-as.factor(menu2016_subset$Limited_Time_Offer_2016)
+menu2016_subset$Regional_2016 <-as.factor(menu2016_subset$Regional_2016)
+menu2016_subset$Shareable_2016 <- as.factor(menu2016_subset$Shareable_2016)
+menu2016_subset.na<- na.omit(menu2016_subset) #257 full obs.
+
+colnames(menu2016_subset)[4:19] <- c("Serving_Size", "Calories", "Total_Fat", "Saturated_Fat",
+                                     "Trans_Fat", "Cholesterol", "Sodium", "Potassium",  "Carbohydrates",
+                                     "Dietary_Fiber", "Sugar", "Protein", "Kids_Meal","Limited_Time_Offer",
+                                     "Regional", "Shareable")
+colnames(menu2016_subset)[2] <- "Item_Name"
+
+#2015
+menu2015$Food_Category <- as.factor(menu2015$Food_Category)
+menu2015$Kids_Meal_2015<- as.factor(menu2015$Kids_Meal_2015)
+menu2015$Kids_Meal_2015 <- ifelse(menu2015$Kids_Meal_2015=="0", "No", "Yes")
+menu2015$Limited_Time_Offer_2015 <- as.factor(menu2015$Limited_Time_Offer_2015)
+menu2015$Limited_Time_Offer_2015 <- ifelse(menu2015$Limited_Time_Offer_2015=="0", "No", "Yes")
+menu2015$Regional_2015 <- as.factor(menu2015$Regional_2015)
+menu2015$Regional_2015 <- ifelse(menu2015$Regional_2015=="0", "No", "Yes")
+menu2015$Shareable_2015 <- as.factor(menu2015$Shareable_2015)
+menu2015$Shareable_2015 <- ifelse(menu2015$Shareable_2015=="0", "No", "Yes")
+menu2015_subset <- subset(x=menu2015, select = c(Restaurant, Item_Name_2015, Food_Category, Serving_Size_2015,
+                                                 Calories_2015, Total_Fat_2015, Saturated_Fat_2015,
+                                                 Trans_Fat_2015, Cholesterol_2015, Sodium_2015,
+                                                 Potassium_2015, Carbohydrates_2015, Dietary_Fiber_2015,
+                                                 Sugar_2015, Protein_2015, Kids_Meal_2015, 
+                                                 Limited_Time_Offer_2015, Regional_2015, Shareable_2015
+))
+menu2015_subset$Kids_Meal_2015 <-as.factor(menu2015_subset$Kids_Meal_2015)
+menu2015_subset$Limited_Time_Offer_2015 <-as.factor(menu2015_subset$Limited_Time_Offer_2015)
+menu2015_subset$Regional_2015 <-as.factor(menu2015_subset$Regional_2015)
+menu2015_subset$Shareable_2015 <- as.factor(menu2015_subset$Shareable_2015)
+menu2015_subset.na<- na.omit(menu2015_subset) #240 full obs.
+colnames(menu2015_subset)[4:19] <- c("Serving_Size", "Calories", "Total_Fat", "Saturated_Fat",
+                                     "Trans_Fat", "Cholesterol", "Sodium", "Potassium",  "Carbohydrates",
+                                     "Dietary_Fiber", "Sugar", "Protein", "Kids_Meal","Limited_Time_Offer",
+                                     "Regional", "Shareable")
+colnames(menu2015_subset)[2] <- "Item_Name"
+
+#2014
+menu2014$Food_Category <- as.factor(menu2014$Food_Category)
+menu2014$Kids_Meal_2014<- as.factor(menu2014$Kids_Meal_2014)
+menu2014$Kids_Meal_2014 <- ifelse(menu2014$Kids_Meal_2014=="0", "No", "Yes")
+menu2014$Limited_Time_Offer_2014 <- as.factor(menu2014$Limited_Time_Offer_2014)
+menu2014$Limited_Time_Offer_2014 <- ifelse(menu2014$Limited_Time_Offer_2014=="0", "No", "Yes")
+menu2014$Regional_2014 <- as.factor(menu2014$Regional_2014)
+menu2014$Regional_2014 <- ifelse(menu2014$Regional_2014=="0", "No", "Yes")
+menu2014$Shareable_2014 <- as.factor(menu2014$Shareable_2014)
+menu2014$Shareable_2014 <- ifelse(menu2014$Shareable_2014=="0", "No", "Yes")
+menu2014_subset <- subset(x=menu2014, select = c(Restaurant, Item_Name_2014, Food_Category, Serving_Size_2014,
+                                                 Calories_2014, Total_Fat_2014, Saturated_Fat_2014,
+                                                 Trans_Fat_2014, Cholesterol_2014, Sodium_2014,
+                                                 Potassium_2014, Carbohydrates_2014, Dietary_Fiber_2014,
+                                                 Sugar_2014, Protein_2014, Kids_Meal_2014, 
+                                                 Limited_Time_Offer_2014, Regional_2014, Shareable_2014
+))
+menu2014_subset$Kids_Meal_2014 <-as.factor(menu2014_subset$Kids_Meal_2014)
+menu2014_subset$Limited_Time_Offer_2014 <-as.factor(menu2014_subset$Limited_Time_Offer_2014)
+menu2014_subset$Regional_2014 <-as.factor(menu2014_subset$Regional_2014)
+menu2014_subset$Shareable_2014 <- as.factor(menu2014_subset$Shareable_2014)
+menu2014_subset.na<- na.omit(menu2014_subset) #214 full obs.
+colnames(menu2014_subset)[4:19] <- c("Serving_Size", "Calories", "Total_Fat", "Saturated_Fat",
+                                     "Trans_Fat", "Cholesterol", "Sodium", "Potassium",  "Carbohydrates",
+                                     "Dietary_Fiber", "Sugar", "Protein", "Kids_Meal","Limited_Time_Offer",
+                                     "Regional", "Shareable")
+colnames(menu2014_subset)[2] <- "Item_Name"
+
+#2013
+menu2013$Food_Category <- as.factor(menu2013$Food_Category)
+menu2013$Kids_Meal_2013<- as.factor(menu2013$Kids_Meal_2013)
+menu2013$Kids_Meal_2013 <- ifelse(menu2013$Kids_Meal_2013=="0", "No", "Yes")
+menu2013$Limited_Time_Offer_2013 <- as.factor(menu2013$Limited_Time_Offer_2013)
+menu2013$Limited_Time_Offer_2013 <- ifelse(menu2013$Limited_Time_Offer_2013=="0", "No", "Yes")
+menu2013$Regional_2013 <- as.factor(menu2013$Regional_2013)
+menu2013$Regional_2013 <- ifelse(menu2013$Regional_2013=="0", "No", "Yes")
+menu2013$Shareable_2013 <- as.factor(menu2013$Shareable_2013)
+menu2013$Shareable_2013 <- ifelse(menu2013$Shareable_2013=="0", "No", "Yes")
+menu2013_subset <- subset(x=menu2013, select = c(Restaurant,Item_Name_2013, Food_Category, Serving_Size_2013,
+                                                 Calories_2013, Total_Fat_2013, Saturated_Fat_2013,
+                                                 Trans_Fat_2013, Cholesterol_2013, Sodium_2013,
+                                                 Potassium_2013, Carbohydrates_2013, Dietary_Fiber_2013,
+                                                 Sugar_2013, Protein_2013, Kids_Meal_2013, 
+                                                 Limited_Time_Offer_2013, Regional_2013, Shareable_2013
+))
+menu2013_subset$Kids_Meal_2013 <-as.factor(menu2013_subset$Kids_Meal_2013)
+menu2013_subset$Limited_Time_Offer_2013 <-as.factor(menu2013_subset$Limited_Time_Offer_2013)
+menu2013_subset$Regional_2013 <-as.factor(menu2013_subset$Regional_2013)
+menu2013_subset$Shareable_2013 <- as.factor(menu2013_subset$Shareable_2013)
+menu2013_subset.na<- na.omit(menu2013_subset) #205 full obs.
+colnames(menu2013_subset)[4:19] <- c("Serving_Size", "Calories", "Total_Fat", "Saturated_Fat",
+                                     "Trans_Fat", "Cholesterol", "Sodium", "Potassium",  "Carbohydrates",
+                                     "Dietary_Fiber", "Sugar", "Protein", "Kids_Meal","Limited_Time_Offer",
+                                     "Regional", "Shareable")
+colnames(menu2013_subset)[2] <- "Item_Name"
+
+#2012
+menu2012$Food_Category <- as.factor(menu2012$Food_Category)
+menu2012$Kids_Meal_2012<- as.factor(menu2012$Kids_Meal_2012)
+menu2012$Kids_Meal_2012 <- ifelse(menu2012$Kids_Meal_2012=="0", "No", "Yes")
+menu2012$Limited_Time_Offer_2012 <- as.factor(menu2012$Limited_Time_Offer_2012)
+menu2012$Limited_Time_Offer_2012 <- ifelse(menu2012$Limited_Time_Offer_2012=="0", "No", "Yes")
+menu2012$Regional_2012 <- as.factor(menu2012$Regional_2012)
+menu2012$Regional_2012 <- ifelse(menu2012$Regional_2012=="0", "No", "Yes")
+menu2012$Shareable_2012 <- as.factor(menu2012$Shareable_2012)
+menu2012$Shareable_2012 <- ifelse(menu2012$Shareable_2012=="0", "No", "Yes")
+menu2012_subset <- subset(x=menu2012, select = c(Restaurant,Item_Name_2012, Food_Category, Serving_Size_2012,
+                                                 Calories_2012, Total_Fat_2012, Saturated_Fat_2012,
+                                                 Trans_Fat_2012, Cholesterol_2012, Sodium_2012,
+                                                 Potassium_2012, Carbohydrates_2012, Dietary_Fiber_2012,
+                                                 Sugar_2012, Protein_2012, Kids_Meal_2012, 
+                                                 Limited_Time_Offer_2012, Regional_2012, Shareable_2012
+))
+menu2012_subset$Kids_Meal_2012 <-as.factor(menu2012_subset$Kids_Meal_2012)
+menu2012_subset$Limited_Time_Offer_2012 <-as.factor(menu2012_subset$Limited_Time_Offer_2012)
+menu2012_subset$Regional_2012 <-as.factor(menu2012_subset$Regional_2012)
+menu2012_subset$Shareable_2012 <- as.factor(menu2012_subset$Shareable_2012)
+menu2012_subset.na<- na.omit(menu2012_subset) #230 full obs.
+colnames(menu2012_subset)[4:19] <- c("Serving_Size", "Calories", "Total_Fat", "Saturated_Fat",
+                                     "Trans_Fat", "Cholesterol", "Sodium", "Potassium",  "Carbohydrates",
+                                     "Dietary_Fiber", "Sugar", "Protein", "Kids_Meal","Limited_Time_Offer",
+                                     "Regional", "Shareable")
+colnames(menu2012_subset)[2] <- "Item_Name"
+
+####
+menu_total.subset <- rbind(menu2017_subset, menu2016_subset, menu2015_subset, menu2014_subset,
+                           menu2013_subset, menu2012_subset)
+
+
+####Non Parametric
+menu_total.subset.nonpara <- na.omit(menu_total.subset) #1,458 entries
+#this is a better representation so that we don't have too much overlapping and clusters
+```
+
+
+```{r, echo=FALSE}
+#logistic
+menu_total.subset2 <- subset(x=menu_total.subset, select=c(Restaurant, Item_Name, Food_Category, Serving_Size,
+                                                           Calories, Total_Fat, Carbohydrates,
+                                                           Sodium, Protein, Kids_Meal ))
+menu_total.subset2.na <- na.omit(menu_total.subset2) #77,194 entries
+#get rid of extreme values
+menu_total.subset2.na.1 <- subset(menu_total.subset2.na, Serving_Size < 900 & Calories <2500 & Total_Fat < 80 & Sodium <3500
+                                  & Carbohydrates <500 & Protein <100) #75,936 entries
+```
+
+```{r, include=FALSE}
+lmod <- glm(Kids_Meal ~ Food_Category + Serving_Size + Calories +Total_Fat+ Carbohydrates + Sodium + Protein, 
+            family=binomial, menu_total.subset2.na.1)
+#There is no need to transform since there is normality assumption
+lmod.reduced <- step(lmod)
+```
+This saturated model actually has the lower AIC (26364.64) compared to the alternatives. 
+
+```{r, echo=FALSE}
+lmod.reduced$call
+lmod.reduced$coefficients
+#no need to reduce saturated model
+```
+  The model's confusion matrix is returned below. It has a success rate of about 95%, so in terms of performance it is a desirable model.
+```{r, echo=FALSE}
+linpred <- predict(lmod.reduced)
+predprob <- predict(lmod.reduced, type = "response")
+menu_total.subset2.na.2 <- mutate(menu_total.subset2.na.1, predout= ifelse(predprob <0.5, "no", "yes"))
+xtabs(~ Kids_Meal + predout, menu_total.subset2.na.2) #(72155+1)/(72155+1+2+3778) = 0.9502212
+```
+  We also offer an alternative paradigm of splitting the data into training and testing sets. With over 75,000 observations, this data is somewhat large and their is a chance of the model overfitting on error. The following is the same model as above done under the context of a validation set approach. 
+  It returns a model of AIC (652.6973), which is much less than the regular logistic model without training. The confusion matrix is also given, which has a success rate of about 94%, similar to the regular logistic regression. In both models, coefficients returned are similar to each other. In conclusion, we would prefer the trained logistic regression under validation over the regular logistic regression.
+```{r, echo=FALSE}
+#------train/testing
+train.logistic <- (menu_total.subset2.na.1$Calories >600)
+test.logistic <- menu_total.subset2.na.1[!train.logistic,]
+Kids_Status <- menu_total.subset2.na.1$Kids_Meal[!train.logistic]
+#dim(test.logistic) #66092   10 ----- about 87/13 split
+glm.log <- glm( Kids_Meal~ Food_Category + Serving_Size + Calories +Total_Fat+ Carbohydrates + Sodium + Protein, 
+                family=binomial, data= menu_total.subset2.na.1, subset=train.logistic)
+glm.log$call
+glm.log$coefficients
+glm.log.probs <- predict(glm.log, test.logistic, type="response")
+#contrasts(menu_total.subset2.na.1$Kids_Meal)
+glm.log.pred <- rep("Kids Meal:Yes",66092 )
+glm.log.pred[glm.log.probs >0.5] = "Kids Mean:No" #arbitrary cutoff probability
+table(glm.log.pred, Kids_Status)
+#     Kids_Status
+#glm.log.pred       No   Yes
+#Kids Meal:Yes 62358  3707
+#Kids Mean:No     24     3
+```
+
+PART II: MULTINOMIAL REGRESSION
+\newline
+    As a generalization of the logistic regression model to many factor level response, the multinomial model allows us to ask what relationships exist between the nutrition facts and their corresponding item's food classification. Here, the multinomial model is created for the Food Category variable as a reponse. A choice is made to reduce the number of factor levels into 7 catgeories from 12 categories for simplicity's sake. As before, all missing and extreme values are omitted as a condition for running this model. 
+```{r, include=FALSE}
+#multinomial
+unique(menu_total.subset$Food_Category) #12 different categories of food type
+#reduce number of categories into something more manageable
+levels(menu_total.subset$Food_Category)[match(c("Desserts", "Baked Goods" ),
+                              levels(menu_total.subset$Food_Category))] <- "Desserts"
+levels(menu_total.subset$Food_Category)[match(c("Fried Potatoes", "Pizza", "Burgers"),
+                                              levels(menu_total.subset$Food_Category))] <- "Fast Food"
+levels(menu_total.subset$Food_Category)[match(c("Toppings & Ingredients", "Soup", "Salads"),
+                                              levels(menu_total.subset$Food_Category))] <- "Soups & Salads"
+menu_total.subset1 <- subset(x= menu_total.subset, select= c(Restaurant, Item_Name, Calories, Food_Category, Total_Fat,
+                                                             Sodium, Carbohydrates, Protein) )
+menu_total.subset1.na <- na.omit(menu_total.subset1) #138087 entries
+### remove extremely large values
+menu_total.subset1.na.2 <- subset(x= menu_total.subset1.na, Calories <2500 & Total_Fat < 80 & Sodium <3500
+                                  & Carbohydrates <500 & Protein <100) #134003 entries
+
+library(dplyr)
+library(ggplot2)
+```
+
+```{r, echo=FALSE, message=FALSE}
+library(gridExtra)
+igp <- mutate(menu_total.subset1.na.2, fat_range = cut_number(Total_Fat,4)) %>% group_by(fat_range, Food_Category) %>% summarise(count=n()) %>%  group_by(fat_range) %>% mutate(etotal=sum(count), proportion = count/etotal)
+p1 <-ggplot(igp, aes(x= fat_range, y=proportion, group=Food_Category, linetype= Food_Category)) +
+  geom_line(aes(linetype=Food_Category, color=Food_Category))+
+  geom_point(aes(color=Food_Category))+
+  theme(legend.position="top")
+igp2 <- mutate(menu_total.subset1.na.2, carb_range = cut_number(Carbohydrates,4)) %>% group_by(carb_range, Food_Category) %>% summarise(count=n()) %>%  group_by(carb_range) %>% mutate(etotal=sum(count), proportion = count/etotal)
+p2 <-ggplot(igp2, aes(x= carb_range, y=proportion, group=Food_Category, linetype= Food_Category)) +
+  geom_line(aes(linetype=Food_Category, color=Food_Category))+
+  geom_point(aes(color=Food_Category))+
+  theme(legend.position="top")
+igp3 <- mutate(menu_total.subset1.na.2, sod_range = cut_number(Sodium,4)) %>% group_by(sod_range, Food_Category) %>% summarise(count=n()) %>%  group_by(sod_range) %>% mutate(etotal=sum(count), proportion = count/etotal)
+p3 <-ggplot(igp3, aes(x= sod_range, y=proportion, group=Food_Category, linetype= Food_Category)) +
+  geom_line(aes(linetype=Food_Category, color=Food_Category))+
+  geom_point(aes(color=Food_Category))+
+  theme(legend.position="top")
+igp4 <- mutate(menu_total.subset1.na.2, protein_range = cut_number(Protein,4)) %>% group_by(protein_range, Food_Category) %>% summarise(count=n()) %>%  group_by(protein_range) %>% mutate(etotal=sum(count), proportion = count/etotal)
+p4 <- ggplot(igp4, aes(x= protein_range, y=proportion, group=Food_Category, linetype= Food_Category)) +
+  geom_line(aes(linetype=Food_Category, color=Food_Category))+
+  geom_point(aes(color=Food_Category))+
+  theme(legend.position="top")
+grid.arrange(p1, p2,p3, p4,ncol=2)
+``` 
+  First we give a visulization of the relationship between the proportions of an item type relative to the ranged intervals cross tabulated to each nutrition type. Some important conclusions include 1) for Beverages there is a an increase in proportion as carbohydrates range incease; unsurprising since most of the drinks sold must have high level of added sugar 2) Soups and Salads tend to decrease in carbs and protein 3) Sandwiches increase in sodium steadily. 
+
+  The goal here is to treat the food category as the response and see if the other nutritional variables can predict it. The saturated multinomial model is reduced but it turns out that the saturated model has the lowest AIC (303049.1). 
+
+```{r, include=FALSE}
+library(nnet)
+mmod <- multinom(Food_Category ~Calories+ Total_Fat + Sodium + Carbohydrates +Protein, data= menu_total.subset1.na.2)
+mmod.reduced <- step(mmod, trace = 1) #No variable should be subtracted from saturated model
+```
+
+```{r, echo=FALSE, message=FALSE}
+mmod$call
+mmod.sum <- summary(mmod)
+mmod.sum$coefficients
+calorie_levels <- 0:2500
+df.preds <- data.frame(Calories= calorie_levels, 
+                      Total_Fat=rep(mean(menu_total.subset1.na.2$Total_Fat)),
+                      Sodium=rep(mean(menu_total.subset1.na.2$Sodium)),
+                      Carbohydrates= rep(mean(menu_total.subset1.na.2$Carbohydrates)),
+                     Protein= rep(mean(menu_total.subset1.na.2$Protein)
+                     ))
+preds <- data.frame(Calories= calorie_levels, predict(mmod.reduced, newdata=df.preds, type="probs"))
+library(tidyr)
+
+```
+We interpret the coefficients as following: The baseline is the Appetizers catgeory. If calories increase by one unit, your chances of staying in the appetizers category are higher compared to staying in the Soup and Salads.In english this means as calories increase by a level, there is a greater chance of appetizers increasing its calorie count than for the Salads category.Likewise, if carbs increase by one unit there is a greater chance that both beverages and desserts would increase in carbs count than for the Appetizers group. Another conclusion: If fat increase by one unit, there is a greater chance that salads will increase its fat count than for the appetizers. This last result seems counterintuitive. After all, shouldn't it be the other way around? Perhaps the salads sold in fast food chains aren't as healthy as we think as they are loaded with fried meats, cheese, and heavy sauces.  
+
+Of interest is the following probability plot. We see that Soups and Salads tends to decrease in Calories and are mostly in the 0-500 calorie range. On the other hand, Beverages tends to increase in Calories, some are in the mid-hundreds range, which is eye-opening. Most of the food types fall in the moderate 300-700 calorie range. Notice the tapering of the right ends. This is because most of the items sold by these chain restaurants are appropriately proportioned for a single consumption. Recall that the Daily Value recommendation is 2000 Calories a day. If someone eats a single item of that much Calories, then they would have used all of the daily percentage limit just for one meal item. But thankfully, that isn't the case here since the items were filtered. 
+```{r, echo=FALSE}
+lpred <- gather(preds, Food_Category, probability,-Calories)
+ggplot(lpred, aes(x=Calories, y=probability, group=Food_Category, linetype=Food_Category)) +
+  geom_line(aes(linetype=Food_Category, color=Food_Category))+
+  geom_point(aes(color=Food_Category))+
+  theme(legend.position="top")
+```
+The confusion matrix for the model is shown below. It has a success rate of about 55%. Depending on the context, we might want something more accurate since biostatistical/clinical work is of higher stake. 
+
+```{r, echo=FALSE}
+xtabs(~ predict(mmod.reduced) + menu_total.subset1.na.2$Food_Category) #55% success rate
+```
+To avoid the possibility of overfitting, the above multinomial model is also done under a validation set approach. It yields a confusion matrix of similar success rate (54.3%). But this model has a lower AIC of 256346.1. We prefer the trained multinomial model under validation as our final model. 
+
+```{r, echo=FALSE, include=FALSE}
+set.seed(1)
+train.rows <- sample(1:nrow(menu_total.subset1.na), 0.8*nrow(menu_total.subset1.na))
+train.multimod <- menu_total.subset1.na[train.rows,]
+test.multimod <-  menu_total.subset1.na[-train.rows,]
+mmod2 <- multinom(Food_Category ~Calories+ Total_Fat + Sodium + Carbohydrates +Protein, 
+                  data= train.multimod)
+```
+
+```{r, echo=FALSE}
+mmod2$call
+```
+
+```{r, echo=FALSE}
+pred.mmod2 <- predict(mmod2, test.multimod, "probs")
+pred.mmod2.class <- predict(mmod2, test.multimod)
+table(pred.mmod2.class, test.multimod$Food_Category)
+```
+
+PART III: NONPARAMETRIC REGRESSION \newline
+  When modelling univariate responses with only a single predictor, one has to be skeptical of whether just one predictor can truly be a strong predictor. But sometimes, that's all we have and sometimes that's what we are interested in. For approaches like this, non-parametric methods provide us a simple starting point for when we encounter unfamiliar places and don't want to assume anything about the underlying distribution of the data. \newline
+  Below is a panel view of four plots showing the relationship between Calories as the response with the four major nutrition types as single predictors. For both Calories ~ Fat and Calories ~ Sodium, there seems to be a clear linear relationship albeit with some outliers in the tailed end. For Calories ~ Carbohydrates there is too much clustering at the left side of the plot; clustering algorithms in unsupervised learning might be helpful in analyzing this one (beyond the scope of this project). The plot showing Calories~ Protein shows the most promise. It's not clear if there is a linear relationship and points are more evenly spaced from each other. Nonparametric statistics can be employed to understand the dynamics of this relationship.
+```{r, echo=FALSE}
+#non-parametric regression
+par(mfrow=c(2,2))
+plot(menu_total.subset.nonpara$Calories ~ menu_total.subset.nonpara$Total_Fat)
+plot(menu_total.subset.nonpara$Calories ~ menu_total.subset.nonpara$Carbohydrates)
+plot(menu_total.subset.nonpara$Calories ~ menu_total.subset.nonpara$Sodium)
+plot(menu_total.subset.nonpara$Calories ~ menu_total.subset.nonpara$Protein)
+#candidate of choice is Calories ~ Protein
+```
+  We begin with kernel estimation and the selection of bandwidth. A selection of three bandwidth parameters and their plots are shown. In the left most panel, the curve fitted is too varying and jagged but it does manage to reach some of the outliers. The right most panel shows a curve that is simply too linear; it doesn't seem to capture the variance of the points it passes through. The best is the middle panel where the curve is smooth enough and curvey enough to capture the variance. As for outliers, perhaps that is a choice to remove some of them before the analysis. Nevertheless, we prefer the middle bandwidth. 
+  
+```{r, echo=FALSE}
+par(mfrow=c(1,3))
+for (bw in c(2, 10, 20))
+{
+  with(menu_total.subset.nonpara, 
+       {plot(Calories~Protein, col=gray(0.75))
+        lines(ksmooth(Protein, Calories, "normal", bw))})
+}#best is bandwidth=10
+```
+  Bandwidth selection can also be estimated through optimization by cross validation. R performs the selection for us instead of experimenting with different bandwidths like we did above. Splines can also be used as well. Finally, we include Loess method.
+
+  The results show that both the cross validated and Loess methods return similar plots. The splines method gives a difficult to interpret and jagged curve that resemebles an overfitting behavior. The decision here is to use the Loess method based on local polynomials. It doesn't require that we specify a function in order to fit unlike the cross validation approach that does. We want to make as little assumption here and rely on as little dependencies as much as possible.
+  
+```{r, echo=FALSE, message=FALSE}
+par(mfrow=c(1,3))
+#use cross validation to pick a bandwidth
+library(sm)
+with(menu_total.subset.nonpara, sm.regression(Protein, Calories, h=h.select(Protein,Calories) ) )
+#using splines
+with(menu_total.subset.nonpara, {
+  plot(Calories~ Protein, col=gray(0.75))
+  lines(smooth.spline(Protein, Calories), lty=2) }) #much better
+
+with(menu_total.subset.nonpara, {
+  plot(Calories ~ Protein, col=gray(0.75))
+  f <- loess(Calories~ Protein)
+  i <-order(Protein)
+  lines(f$x[i], f$fitted[i])
+}) #somewhat betterthan bandwith=20
+```
+  Confidence intervals can be created for the loess method. The graph below shows that confidence band isn't too far apart from the curve itsel, which is desirable. 
+
+```{r, echo=FALSE}
+ggplot(menu_total.subset.nonpara, aes(x=Protein, y=Calories)) + geom_point(alpha=0.25) + geom_smooth(
+  method="loess", span=1) + geom_line(aes(x=Protein, y=Calories), linetype=2)
+```
+  The next step would be to try to get an analytic form of an equation that this curve represents. That is, of course, beyond the scope of this project and concludes the non parametric portion. \newline
+  So how does this benefit our understanding of the problem? Compared to the two models shown below of Calories ~ Protein, one on the left panel is not transformed while the one on the right panel is square root transformed,at least we don't have to deal with problems on the normality assumption and worry about any nonstandard residual plot behaviors.
+To be fair though the square root transformed model is not the worst thing in the world, though the bottoming clusters serve a problem. 
+
+```{r, echo=FALSE}
+par(mfrow=c(1,2))
+#Discussion of Methods Faraway 14.6
+#regular linear regression
+linear1 <- lm(Calories~ Protein, menu_total.subset.nonpara)
+plot(linear1$residuals, linear1$fitted.values) #hetero
+linear2 <- lm(sqrt(Calories) ~ sqrt(Protein), menu_total.subset.nonpara)
+plot(linear2$residuals, linear2$fitted.values)
+```
+
+PART IV: LONGITUDINAL STUDY \newline
+  The final part of this project explores the multi-year recording of selected items as a longitudinal design. Through a convoluted process the original data needs to be completely altered into an appropriate panel format. Afterward, some explorary graphics are produced. The most interesting part is a case study involving certain items from Burger King.
+  
+```{r, include=FALSE}
+#Longitudinal
+menu12 <-subset(menu2012, select=c(MenuItemID, Restaurant, Food_Category, Item_Name_2012,Calories_2012))
+menu12$Year <- 2012
+colnames(menu12)[4] <-"Item Name"
+colnames(menu12)[5] <- "Calories"
+menu13 <-subset(menu2013, select=c(MenuItemID, Restaurant, Food_Category, Item_Name_2013,Calories_2013))
+menu13$Year <- 2013
+colnames(menu13)[4] <-"Item Name"
+colnames(menu13)[5] <- "Calories"
+menu14 <-subset(menu2014, select=c(MenuItemID, Restaurant, Food_Category, Item_Name_2014,Calories_2014))
+menu14$Year <- 2014
+colnames(menu14)[4] <-"Item Name"
+colnames(menu14)[5] <- "Calories"
+menu15 <-subset(menu2015, select=c(MenuItemID, Restaurant, Food_Category, Item_Name_2015,Calories_2015))
+menu15$Year <- 2015
+colnames(menu15)[4] <-"Item Name"
+colnames(menu15)[5] <- "Calories"
+menu16 <-subset(menu2016, select=c(MenuItemID, Restaurant, Food_Category, Item_Name_2016,Calories_2016))
+menu16$Year <- 2016
+colnames(menu16)[4] <-"Item Name"
+colnames(menu16)[5] <- "Calories"
+menu17 <-subset(menu2017, select=c(MenuItemID, Restaurant, Food_Category, Item_Name_2017,Calories_2017))
+menu17$Year <- 2017
+colnames(menu17)[4] <-"Item Name"
+colnames(menu17)[5] <- "Calories"
+menu12_17 <- rbind(menu12, menu13, menu14, menu15, menu16, menu17)
+menu12_17.na <- na.omit(menu12_17)
+#reduce number of categories into something more manageable
+levels(menu12_17.na$Food_Category)[match(c("Desserts", "Baked Goods" ),
+                                       levels(menu12_17.na$Food_Category))] <- "Desserts"
+levels(menu12_17.na$Food_Category)[match(c("Fried Potatoes", "Pizza", "Burgers"),
+                                       levels(menu12_17.na$Food_Category))] <- "Fast Food"
+levels(menu12_17.na$Food_Category)[match(c("Toppings & Ingredients", "Soup", "Salads"),
+                                       levels(menu12_17.na$Food_Category))] <- "Soups & Salads"
+menu12_17.na$Year <- as.numeric(menu12_17.na$Year)
+
+```
+
+
+  Below is a panel of the first twenty items offered by Burger King, as a subset of the entire 2012 to 2017 dataset. We are interested in how the Calories of these items change over the years. Most of the items don't seem to change calorie count by much. Indeed, items 7 (Hamburger), 8 (Cheeseburger), 280 (Original Chicken Sandwich w/ Mayo), and 797 (BK Veggie Burger) barely change at all. Other items have noticeable changes in calories. For example, items 27 (Double Whopper Sandwich w/ Cheese), 282 (Tendergrill Chicken Sandwich), and 284 (Tendercrisp Chicken Sandwich) show changes.
+Showing a panel of all the items would be impractical, of course.
+
+```{r, echo=FALSE}
+#longitudinal
+#get rid of extreme values of Calories 
+menu12_17.na.2 <- subset(menu12_17.na, Calories <2000)
+menu12_17.na.BB <- subset(menu12_17.na.2, Restaurant== "Burger King") #1,812 entries
+first20 <- filter(menu12_17.na.BB, MenuItemID %in% c("7", "8", "11", "12", "14",
+                                                    "18", "21", "25", "27", "278",
+                                                    "280", "282", "284", "797", "874",
+                                                    "876", "877", "879", "880", "882")) #corresponds to the 10 items that are grouped like this
+ggplot(first20, aes(x=Year, y=Calories)) + geom_line() + facet_wrap(~MenuItemID)
+
+```
+  We can also separate the data into food types and see if the changes in calorie count has anything to do with their classfication. It's hard to tell just by looking at this but for the Sandwiches, there seems to be more variance when it comes to changes in calorie count by the intersecting lines.
+  
+```{r, echo=FALSE}
+ggplot(first20, aes(x=Year, y= Calories, group=MenuItemID)) + geom_line(aes(linetype=Food_Category, color=Food_Category))+
+  geom_point(aes(color=Food_Category))+
+  theme(legend.position="top") +
+  facet_wrap(~Food_Category)
+```
+  In the modelling part of this section, the first 20 items has now been increased to the first 40 items of the Burger King subset along with their longitudinal components. The R library "lme4"" is required to perform this analysis. The reader may have trouble installing and attaching this package; in that case an installation directly from R CRAN repositories and restarting R is recommended.
+```{r, include=FALSE}
+#for more points
+first40 <- filter(menu12_17.na.BB, MenuItemID %in% c("7", "8", "11", "12", "14",
+                                                    "18", "21", "25", "27", "278",
+                                                     "280", "282", "284", "797", "874",
+                                                     "876", "877", "879", "880", "882",
+                                                    "1547", "1549", "1551", "1553", "1645",
+                                                    "1646", "1648", "2128", "2129", "2130", 
+                                                    "2131", "2790", "2829", "2956", "2973",
+                                                   "2995", "2996", "3111", "3130", "3679") )
+
+long.mod <- lm(Calories ~ Year, subset=(MenuItemID==7), menu12_17.na.BB)
+library(lme4) #consider restarting R studio after installing this package
+```
+A surprising result is given below. A linear regression is performed for each of the 40 items studied and their slopes and intercepts are plotted. Thee is a clear inverse relationship between the two. This suggests strong negative correlation between Calories and the change in calories over the year range. We cannot perform linear models on each of these qualities separately. We interpret this result as follows: Higher calorie items (intercept terms) will lead to a more rapid decrease in slope. This means higher caloried items tend to not change as much in calorie count. (Sort of like a ceiling effect)
+```{r, echo=FALSE}
+ml <-lmList(Calories~ Year | MenuItemID, first40)
+intercepts <- sapply(ml, coef)[1,] #instead of looping
+slopes <- sapply(ml, coef)[2,]
+plot(intercepts, slopes, xlab="Intercept", ylab="Slope") #inverse relationship
+```
+  At this point the analysis is concluded since this requires specialized knowledge of mixed effects modelling, which the R package lme4 is designed for. What's to gain from this preliminary analysis is that higher calorie items tend not to change much throughout the years and that longitudinal modelling allows us to incorporate time related predictors as an essential part of the data analysis process, whenever the data allows it.
+  
+CONCLUSION: \newline
+  Both logistic regression and multinomial regression performed well for the prediction of categorical variables. Since there is a moderately large number of observations, both validation set versions of these models are preferred. Nonparametric curve estimation was used to deal with univariate problems with a single predictor without resorting to strong distribution assumptions and we concluded that the LOESS method is best. Finally, the longitudinal design of the data was taken into account and we discovered that there is a ceiling effect on high calorie items and their tendencies to not change as much.  \newline
+    The underlying philosophy of this project is to discover effects of nutritional facts of fast food sold with a focus on calorie counting. We've only scratched the surface of this topic and there are plenty of researchers in public health who work on these types of problem everyday, doing their best to ultimately influence the improvement in our nation's ever changing diets. Based on what've seen there are plenty of less than desirable qualities of some of the items showcased here. But we at least with the open source data available on this topic, the use of statistical procedures can clarify our understanding on deciding what to eat. 
+    
+SOURCE:
+http://menustat.org/#/home
